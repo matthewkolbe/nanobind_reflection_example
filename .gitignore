@@ -1,0 +1,27 @@
+# Build
+build/
+build-*/
+cmake-build-*/
+
+# Cloned dependencies
+extern/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+*.so
+*.pyd
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

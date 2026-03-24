@@ -1,0 +1,61 @@
+FROM ubuntu:24.04 AS gcc-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    wget \
+    flex \
+    bison \
+    libgmp-dev \
+    libmpfr-dev \
+    libmpc-dev \
+    texinfo \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth=1 https://gcc.gnu.org/git/gcc.git /tmp/gcc-source
+
+WORKDIR /tmp/gcc-source
+
+RUN ./contrib/download_prerequisites
+
+RUN mkdir build && cd build && \
+    ../configure \
+        --prefix=/opt/gcc-trunk \
+        --enable-languages=c,c++ \
+        --disable-multilib \
+        --disable-bootstrap \
+        --disable-libsanitizer \
+    && make -j$(nproc) \
+    && make install
+
+# --- Runtime stage ---
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    libgmp10 \
+    libmpfr6 \
+    libmpc3 \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    cmake \
+    ninja-build \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=gcc-builder /opt/gcc-trunk /opt/gcc-trunk
+
+ENV PATH="/opt/gcc-trunk/bin:${PATH}"
+ENV LD_LIBRARY_PATH="/opt/gcc-trunk/lib64:${LD_LIBRARY_PATH}"
+ENV CC=/opt/gcc-trunk/bin/gcc
+ENV CXX=/opt/gcc-trunk/bin/g++
+
+RUN pip3 install --break-system-packages pytest
+
+WORKDIR /workspace
